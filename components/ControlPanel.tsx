@@ -182,13 +182,9 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(true);
   const [prompt, setPrompt] = useState('');
-  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
-    library: false,
-    structure: true,
-    growth: false,
-    wind: false,
-    style: false
-  });
+  
+  // Changed from Record<string, boolean> to string | null for mutually exclusive accordion
+  const [activeSection, setActiveSection] = useState<string | null>('structure');
 
   // Library State
   const [savedConfigs, setSavedConfigs] = useState<SavedConfig[]>([]);
@@ -202,8 +198,9 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
     setSaveName(`Tree ${date.getFullYear()}-${(date.getMonth()+1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')} ${date.getHours()}:${date.getMinutes()}`);
   }, []);
 
-  const toggleSection = (key: string) => {
-    setExpandedSections(prev => ({ ...prev, [key]: !prev[key] }));
+  const toggleSection = (id: string) => {
+    // If clicking the currently open section, close it (null). Otherwise, open the new one.
+    setActiveSection(prev => prev === id ? null : id);
   };
 
   const handleChange = (key: keyof TreeConfig, value: any) => {
@@ -375,7 +372,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
             title="Library & Exports"
             id="library"
             icon={Library}
-            isExpanded={expandedSections['library']}
+            isExpanded={activeSection === 'library'}
             onToggle={toggleSection}
         >
             <div className="bg-white/5 rounded-lg p-2 space-y-3">
@@ -465,7 +462,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
           title="Structure" 
           id="structure" 
           icon={Ruler}
-          isExpanded={expandedSections['structure']}
+          isExpanded={activeSection === 'structure'}
           onToggle={toggleSection}
         >
             <Slider label="Trunk Length" value={config.trunkLength} onChange={(v) => handleChange('trunkLength', v)} min={50} max={300} step={5} />
@@ -491,7 +488,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
           title="Growth Rules" 
           id="growth" 
           icon={Sprout}
-          isExpanded={expandedSections['growth']}
+          isExpanded={activeSection === 'growth'}
           onToggle={toggleSection}
         >
             <Slider label="Branch Probability" value={config.branchProbability} onChange={(v) => handleChange('branchProbability', v)} min={0.7} max={1.0} step={0.01} />
@@ -503,7 +500,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
           title="Wind & Physics" 
           id="wind" 
           icon={Wind}
-          isExpanded={expandedSections['wind']}
+          isExpanded={activeSection === 'wind'}
           onToggle={toggleSection}
         >
              <div className="p-2 bg-white/5 rounded-md border border-white/5">
@@ -518,7 +515,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
           title="Aesthetics" 
           id="style" 
           icon={Palette}
-          isExpanded={expandedSections['style']}
+          isExpanded={activeSection === 'style'}
           onToggle={toggleSection}
         >
             <ColorPicker label="Background" value={config.backgroundColor} onChange={(v) => handleChange('backgroundColor', v)} />

@@ -3,7 +3,18 @@ import { TreeConfig, DEFAULT_CONFIG } from "../types";
 
 export async function generateTreeTheme(prompt: string): Promise<Partial<TreeConfig>> {
   try {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    // Robust key retrieval to support various environment configurations (Vite, Netlify, etc.)
+    const apiKey = 
+      process.env.API_KEY || 
+      process.env.GEMINI_API_KEY || 
+      (import.meta as any).env?.VITE_API_KEY || 
+      (import.meta as any).env?.VITE_GEMINI_API_KEY;
+
+    if (!apiKey) {
+      throw new Error("API Key not found. Please set API_KEY or GEMINI_API_KEY in your environment.");
+    }
+
+    const ai = new GoogleGenAI({ apiKey });
 
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
@@ -43,8 +54,8 @@ export async function generateTreeTheme(prompt: string): Promise<Partial<TreeCon
             
             leafShape: { 
                 type: Type.STRING, 
-                enum: ["circle", "oval", "triangle", "diamond", "star", "heart"],
-                description: "Shape of the leaves" 
+                // Removed strict enum to prevent backend 500 errors. Validation handled in code.
+                description: "Shape of the leaves. Preferred values: circle, oval, triangle, diamond, star, heart" 
             },
             leafSize: { type: Type.NUMBER, description: "Radius of leaves, 0 for none (0-10)" },
             leafPalette: { 
@@ -71,6 +82,13 @@ export async function generateTreeTheme(prompt: string): Promise<Partial<TreeCon
     if (!text) return DEFAULT_CONFIG;
 
     const parsed = JSON.parse(text);
+
+    // Client-side validation for leafShape since we removed strict enum from schema
+    const validShapes = ["circle", "oval", "triangle", "diamond", "star", "heart"];
+    if (parsed.leafShape && !validShapes.includes(parsed.leafShape)) {
+      parsed.leafShape = "oval"; // Fallback
+    }
+
     return { ...DEFAULT_CONFIG, ...parsed };
 
   } catch (error) {
