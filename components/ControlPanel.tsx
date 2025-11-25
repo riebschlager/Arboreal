@@ -3,7 +3,7 @@ import { TreeConfig, SavedConfig } from '../types';
 import { 
   RefreshCcw, Settings2, Wind, Video, Square, Camera, 
   ChevronDown, ChevronRight, Palette, Ruler, Sprout, Sparkles, Loader2,
-  Plus, Trash2, Save, Download, Upload, FileJson, Library, Shapes
+  Plus, Trash2, Save, Download, Upload, FileJson, Library, Shapes, Wand2
 } from 'lucide-react';
 import { getSavedConfigs, saveConfig, deleteConfig, importConfigs, exportConfigToFile } from '../services/storageService';
 
@@ -455,6 +455,64 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                         </div>
                     </>
                 )}
+            </div>
+        </CollapsibleSection>
+        
+        <CollapsibleSection
+            title="Post Processing"
+            id="post"
+            icon={Wand2}
+            isExpanded={activeSection === 'post'}
+            onToggle={toggleSection}
+        >
+            <div className="space-y-4">
+                <div className="bg-white/5 rounded-lg p-2 border border-white/5">
+                    <div className="flex items-center justify-between mb-2">
+                        <label className="text-[10px] text-emerald-400 font-semibold uppercase tracking-wider">Bloom</label>
+                        <input 
+                            type="checkbox" 
+                            checked={config.useBloom} 
+                            onChange={(e) => handleChange('useBloom', e.target.checked)}
+                            className="accent-emerald-500"
+                        />
+                    </div>
+                    {config.useBloom && (
+                        <>
+                            <Slider label="Intensity" value={config.bloomIntensity} onChange={(v) => handleChange('bloomIntensity', v)} min={0} max={1} step={0.01} />
+                            <Slider label="Radius" value={config.bloomRadius} onChange={(v) => handleChange('bloomRadius', v)} min={0} max={50} step={1} suffix="px" />
+                        </>
+                    )}
+                </div>
+
+                <div className="bg-white/5 rounded-lg p-2 border border-white/5">
+                    <div className="flex items-center justify-between mb-2">
+                        <label className="text-[10px] text-emerald-400 font-semibold uppercase tracking-wider">Vignette</label>
+                        <input 
+                            type="checkbox" 
+                            checked={config.useVignette} 
+                            onChange={(e) => handleChange('useVignette', e.target.checked)}
+                            className="accent-emerald-500"
+                        />
+                    </div>
+                    {config.useVignette && (
+                        <Slider label="Strength" value={config.vignetteStrength} onChange={(v) => handleChange('vignetteStrength', v)} min={0} max={1} step={0.01} />
+                    )}
+                </div>
+
+                <div className="bg-white/5 rounded-lg p-2 border border-white/5">
+                    <div className="flex items-center justify-between mb-2">
+                        <label className="text-[10px] text-emerald-400 font-semibold uppercase tracking-wider">Film Grain</label>
+                        <input 
+                            type="checkbox" 
+                            checked={config.useGrain} 
+                            onChange={(e) => handleChange('useGrain', e.target.checked)}
+                            className="accent-emerald-500"
+                        />
+                    </div>
+                    {config.useGrain && (
+                        <Slider label="Opacity" value={config.grainOpacity} onChange={(v) => handleChange('grainOpacity', v)} min={0} max={0.2} step={0.01} />
+                    )}
+                </div>
             </div>
         </CollapsibleSection>
 

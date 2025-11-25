@@ -30,6 +30,11 @@ export async function generateTreeTheme(prompt: string): Promise<Partial<TreeCon
       - "Wild", "Ancient" or "Organic" might have a large gap between min and max branch angles and higher rogue chance.
       - "Rainbow" or "Psychedelic" should have a multi-color palette and high color shift speed.
       
+      Also consider Post-Processing:
+      - "Neon", "Glowing", "Ethereal" -> High Bloom.
+      - "Retro", "Old Photo" -> High Grain, Vignette.
+      - "Clean", "Vector" -> No Bloom, No Grain.
+
       Return a JSON object matching the schema.`,
       config: {
         responseMimeType: "application/json",
@@ -72,6 +77,14 @@ export async function generateTreeTheme(prompt: string): Promise<Partial<TreeCon
             windVariability: { type: Type.NUMBER, description: "Turbulence (0.0 - 1.0)" },
             rogueChance: { type: Type.NUMBER, description: "Probability of abnormal branch length (0.0 - 0.5)" },
             rogueStrength: { type: Type.NUMBER, description: "Multiplier for abnormal branches (1.0 - 2.5)" },
+
+            useBloom: { type: Type.BOOLEAN },
+            bloomRadius: { type: Type.NUMBER, description: "10-50" },
+            bloomIntensity: { type: Type.NUMBER, description: "0.1-0.8" },
+            useVignette: { type: Type.BOOLEAN },
+            vignetteStrength: { type: Type.NUMBER, description: "0.1-0.8" },
+            useGrain: { type: Type.BOOLEAN },
+            grainOpacity: { type: Type.NUMBER, description: "0.01-0.15" },
           },
           required: ["palette", "backgroundColor", "minBranchAngle", "maxBranchAngle"],
         },

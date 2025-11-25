@@ -28,6 +28,17 @@ export interface TreeConfig {
   windForce: number;       // Magnitude of the sway
   windDirection: number;   // -1 (Left) to 1 (Right) bias
   windVariability: number; // Randomness factor in the wave
+
+  // Post Processing
+  useBloom: boolean;
+  bloomRadius: number;     // 0 - 50 px
+  bloomIntensity: number;  // 0 - 1 opacity
+  
+  useVignette: boolean;
+  vignetteStrength: number; // 0 - 1
+  
+  useGrain: boolean;
+  grainOpacity: number;    // 0 - 0.2
 }
 
 export interface SavedConfig {
@@ -63,7 +74,15 @@ export const DEFAULT_CONFIG: TreeConfig = {
   rogueStrength: 1.5,
 
   windSpeed: 1.0,
-  windForce: 0.0, // Start still
+  windForce: 0.0, 
   windDirection: 0.2,
   windVariability: 0.5,
+
+  useBloom: true,
+  bloomRadius: 20,
+  bloomIntensity: 0.4,
+  useVignette: true,
+  vignetteStrength: 0.3,
+  useGrain: true,
+  grainOpacity: 0.05
 };

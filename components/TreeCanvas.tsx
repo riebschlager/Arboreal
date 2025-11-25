@@ -46,6 +46,9 @@ class Branch {
 
 const TreeCanvas = forwardRef<TreeCanvasHandle, TreeCanvasProps>(({ config, triggerGrowth }, ref) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  // Offscreen canvas for buffering the tree render before post-processing
+  const bufferCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  
   const requestRef = useRef<number>();
   const rootBranchRef = useRef<Branch | null>(null);
   const activeBranchesRef = useRef<Branch[]>([]);
@@ -250,6 +253,9 @@ const TreeCanvas = forwardRef<TreeCanvasHandle, TreeCanvasProps>(({ config, trig
     rootBranchRef.current = root;
     activeBranchesRef.current = [root];
     timeRef.current = 0;
+    
+    // Create offscreen buffer
+    bufferCanvasRef.current = document.createElement('canvas');
 
   }, [triggerGrowth, config.trunkLength, config.trunkWidth]);
 
@@ -298,7 +304,6 @@ const TreeCanvas = forwardRef<TreeCanvasHandle, TreeCanvasProps>(({ config, trig
           const leafSwayX = Math.cos(time * config.windSpeed * 2 + branch.phaseOffset) * (config.leafSize * 0.2);
           const leafSwayY = Math.sin(time * config.windSpeed * 2 + branch.phaseOffset) * (config.leafSize * 0.2);
           
-          // Calculate Leaf Color
           let leafColorT = baseT;
           if (config.leafColorShiftSpeed !== 0) {
               leafColorT = baseT - (time * config.leafColorShiftSpeed * 0.1);
@@ -306,7 +311,6 @@ const TreeCanvas = forwardRef<TreeCanvasHandle, TreeCanvasProps>(({ config, trig
           const leafColor = getPaletteColor(config.leafPalette || ['#ff007f'], leafColorT);
           
           ctx.fillStyle = leafColor;
-          // Align leaf with branch
           drawLeafShape(ctx, endX + leafSwayX, endY + leafSwayY, config.leafSize, config.leafShape, currentAngle + Math.PI/2);
        }
     }
@@ -324,15 +328,20 @@ const TreeCanvas = forwardRef<TreeCanvasHandle, TreeCanvasProps>(({ config, trig
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
+    
+    // Ensure buffer canvas matches size
+    if (bufferCanvasRef.current) {
+        if (bufferCanvasRef.current.width !== canvas.width || bufferCanvasRef.current.height !== canvas.height) {
+            bufferCanvasRef.current.width = canvas.width;
+            bufferCanvasRef.current.height = canvas.height;
+        }
+    }
+    const bufferCtx = bufferCanvasRef.current?.getContext('2d');
 
     timeRef.current += 0.016; 
 
-    ctx.fillStyle = config.backgroundColor;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
+    // --- GROWTH LOGIC ---
     const newActiveBranches: Branch[] = [];
-    let growingActivity = false;
-
     activeBranchesRef.current.forEach(b => {
       const grown = b.grow(config.growthSpeed);
       if (grown) {
@@ -359,7 +368,6 @@ const TreeCanvas = forwardRef<TreeCanvasHandle, TreeCanvasProps>(({ config, trig
                 const child = new Branch(-angleRad, newLen, newWidth, b.depth + 1);
                 b.children.push(child);
                 newActiveBranches.push(child);
-                growingActivity = true;
              }
              
              if (Math.random() < config.branchProbability) {
@@ -369,18 +377,85 @@ const TreeCanvas = forwardRef<TreeCanvasHandle, TreeCanvasProps>(({ config, trig
                 const child = new Branch(angleRad, newLen, newWidth, b.depth + 1);
                 b.children.push(child);
                 newActiveBranches.push(child);
-                growingActivity = true;
              }
         }
       } else {
         newActiveBranches.push(b);
-        growingActivity = true;
       }
     });
     activeBranchesRef.current = newActiveBranches;
 
-    if (rootBranchRef.current) {
-        drawBranch(ctx, rootBranchRef.current, canvas.width / 2, canvas.height, 0, timeRef.current);
+    // --- RENDER PIPELINE ---
+
+    // 1. Draw Tree to Buffer (Transparent Background)
+    if (bufferCtx) {
+        bufferCtx.clearRect(0, 0, canvas.width, canvas.height);
+        if (rootBranchRef.current) {
+            drawBranch(bufferCtx, rootBranchRef.current, canvas.width / 2, canvas.height, 0, timeRef.current);
+        }
+    }
+
+    // 2. Clear Main Canvas & Draw Background
+    ctx.fillStyle = config.backgroundColor;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    if (bufferCanvasRef.current) {
+        // 3. Bloom Pass (Blur + Additive)
+        if (config.useBloom) {
+            ctx.save();
+            ctx.filter = `blur(${config.bloomRadius}px)`;
+            ctx.globalCompositeOperation = 'lighter'; // or 'screen'
+            ctx.globalAlpha = config.bloomIntensity;
+            ctx.drawImage(bufferCanvasRef.current, 0, 0);
+            ctx.restore();
+        }
+
+        // 4. Main Tree Pass (Sharp)
+        ctx.save();
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.drawImage(bufferCanvasRef.current, 0, 0);
+        ctx.restore();
+    }
+
+    // 5. Vignette Pass
+    if (config.useVignette) {
+        const gradient = ctx.createRadialGradient(
+            canvas.width / 2, canvas.height / 2, canvas.height / 3,
+            canvas.width / 2, canvas.height / 2, canvas.height
+        );
+        gradient.addColorStop(0, 'rgba(0,0,0,0)');
+        gradient.addColorStop(1, `rgba(0,0,0,${config.vignetteStrength})`);
+        
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    // 6. Grain Pass
+    if (config.useGrain) {
+        ctx.save();
+        ctx.globalCompositeOperation = 'overlay';
+        ctx.globalAlpha = config.grainOpacity;
+        
+        // Dynamic noise generation (can be expensive, maybe optimize with a pre-rendered pattern later)
+        // For now, drawing random pixels is too slow. 
+        // Let's use a very simplified noise approach or skip per-pixel if performance lags.
+        // Fast approx: Draw a pre-generated noise pattern if we had one.
+        // Since we don't, we'll implement a fast random rect fill method? No, looks blocky.
+        // Actually, loop 0..width/2 with random math is slow in JS.
+        // We will skip per-frame noise generation for performance in this specific impl
+        // and rely on a static noise texture if we had assets.
+        // Alternative: Use a small pattern and tile it?
+        
+        // Simple procedural noise:
+        // We can draw a few thousand tiny rects?
+        const noiseCount = (canvas.width * canvas.height) / 8000;
+        ctx.fillStyle = '#ffffff';
+        for(let i=0; i<noiseCount; i++) {
+             const x = Math.random() * canvas.width;
+             const y = Math.random() * canvas.height;
+             ctx.fillRect(x, y, 1.5, 1.5);
+        }
+        ctx.restore();
     }
 
     requestRef.current = requestAnimationFrame(animate);
