@@ -3,7 +3,13 @@ import { TreeConfig, DEFAULT_CONFIG } from "../types";
 
 export async function generateTreeTheme(prompt: string): Promise<Partial<TreeConfig>> {
   try {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const apiKey = process.env.API_KEY || process.env.GEMINI_API_KEY;
+    
+    if (!apiKey) {
+      throw new Error("API Key not found. Please set API_KEY or GEMINI_API_KEY in your environment.");
+    }
+
+    const ai = new GoogleGenAI({ apiKey });
 
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
