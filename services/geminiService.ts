@@ -1,10 +1,10 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { TreeConfig, DEFAULT_CONFIG } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
 export async function generateTreeTheme(prompt: string): Promise<Partial<TreeConfig>> {
   try {
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
       contents: `Generate a configuration for a procedural fractal tree art piece based on this description: "${prompt}".
