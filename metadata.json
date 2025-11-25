@@ -1,0 +1,5 @@
+{
+  "name": "Arboreal AI",
+  "description": "A generative art application that grows animated fractal trees. Users can customize parameters manually or use Gemini to generate unique tree themes based on natural language descriptions.",
+  "requestFramePermissions": []
+}
