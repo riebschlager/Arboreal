@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import TreeCanvas, { TreeCanvasHandle } from './components/TreeCanvas';
 import ControlPanel from './components/ControlPanel';
 import { TreeConfig, DEFAULT_CONFIG } from './types';
@@ -51,6 +51,23 @@ const App: React.FC = () => {
       treeCanvasRef.current.takeSnapshot();
     }
   }, []);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Check if user is typing in an input, textarea, or contentEditable element
+      const target = e.target as HTMLElement;
+      const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
+
+      if (e.code === 'Space' && !isInput) {
+        e.preventDefault(); // Prevent scrolling
+        handleRegrow();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleRegrow]);
 
   return (
     <div className="relative w-full h-screen overflow-hidden font-sans">
